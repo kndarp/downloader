@@ -8,6 +8,8 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.core.env.Environment;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -37,7 +39,7 @@ public class DownloaderApplication {
   }
 
   @GetMapping("/download/bse")
-  public String downloadBse(
+  public ResponseEntity<String> downloadBse(
       @RequestParam(value = "date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
 
     String objectPath = String.format("bse/%s/", DownloaderUtils.getObjectDateFormat(date));
@@ -65,13 +67,14 @@ public class DownloaderApplication {
               });
     } catch (FileNotFoundException e) {
       LOGGER.warn("No file for date {}", date, e);
-      return "No file for given date";
+      return ResponseEntity.ok("No File for date");
     } catch (IOException e) {
       LOGGER.error("Problems with IO", e);
+      ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.fillInStackTrace());
     } finally {
       DownloaderUtils.delete(downloadedFile);
     }
-    return objectPath; // TODO return all paths that have been added
+    return ResponseEntity.ok("Download Succesful");
     // TODO redirect to conversion service
   }
 }
