@@ -3,8 +3,8 @@
 name: deploy
 
 on:
-  release:
-    types: [created]
+  push:
+    branches: [ master ]
 
 # Environment variables available to all jobs and steps in this workflow
 env:
@@ -62,8 +62,8 @@ jobs:
         docker push $REGISTRY_HOSTNAME/$PROJECT/$IMAGE:$GITHUB_SHA
         
 
-#    # Deploy the Docker image to the Cloud Run
-#    - name: Deploy
-#      run: |
-#        gcloud components install beta && gcloud beta run deploy $IMAGE --quiet --image $REGISTRY_HOSTNAME/$PROJECT/$IMAGE:${GITHUB_SHA} --project $PROJECT --region $REGION --platform managed
-#
+    # Deploy the Docker image to the Cloud Run
+    - name: Deploy
+      run: |
+        gcloud components install beta && gcloud beta run deploy $IMAGE --quiet --image $REGISTRY_HOSTNAME/$PROJECT/$IMAGE:${GITHUB_SHA} --project $PROJECT --region $REGION --platform managed
+
