@@ -1,6 +1,5 @@
 package com.doofus.marketdata.downloader;
 
-import org.apache.commons.io.FilenameUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,13 +14,12 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.net.URL;
-import java.nio.channels.Channels;
-import java.nio.channels.ReadableByteChannel;
-import java.time.Instant;
 import java.time.LocalDate;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 import static com.doofus.marketdata.downloader.GoogleCloudStorageHelper.uploadObject;
 
@@ -43,36 +41,31 @@ public class DownloaderApplication {
       @RequestParam(value = "date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
 
     String objectPath = String.format("bse/%s/", DownloaderUtils.getObjectDateFormat(date));
-    String downloadedFile = String.valueOf(Instant.now().getEpochSecond());
 
-    try (FileOutputStream fos = new FileOutputStream(downloadedFile)) {
+    try {
+      URL downloadUrl =
+          new URL(String.format(downloadLink, DownloaderUtils.getFileDateFormat(date)));
+      ZipInputStream zipInputStream = new ZipInputStream(downloadUrl.openStream());
 
-      URL website = new URL(String.format(downloadLink, DownloaderUtils.getFileDateFormat(date)));
-      ReadableByteChannel rbc = Channels.newChannel(website.openStream());
-      fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);
+      ZipEntry zipEntry;
+      while ((zipEntry = zipInputStream.getNextEntry()) != null) {
 
-      DownloaderUtils.unzip(downloadedFile)
-          .forEach(
-              filePath -> {
-                try {
-                  uploadObject(
-                      environment.getProperty("PROJECT"),
-                      environment.getProperty("BUCKET"),
-                      objectPath + FilenameUtils.getName(filePath),
-                      filePath);
-                  DownloaderUtils.delete(filePath);
-                } catch (IOException e) {
-                  e.printStackTrace();
-                }
-              });
+        byte[] zipEntryBytes = DownloaderUtils.readEntryIntoInputStream(zipInputStream);
+        uploadObject(
+            environment.getProperty("PROJECT"),
+            environment.getProperty("BUCKET"),
+            objectPath + zipEntry.getName(),
+            zipEntryBytes);
+      }
+
+    } catch (MalformedURLException ex) {
+      LOGGER.error("Check URL formation", ex);
     } catch (FileNotFoundException e) {
       LOGGER.warn("No file for date {}", date, e);
       return ResponseEntity.ok("No File for date");
     } catch (IOException e) {
       LOGGER.error("Problems with IO", e);
       ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.fillInStackTrace());
-    } finally {
-      DownloaderUtils.delete(downloadedFile);
     }
     return ResponseEntity.ok("Download Succesful");
     // TODO redirect to conversion service
