@@ -40,8 +40,9 @@ public class DownloaderApplication {
 
   @GetMapping("/bse")
   public ResponseEntity<String> downloadBse(
-      @RequestParam(value = "date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
-
+      @RequestParam(value = "date", defaultValue = "#{T(java.time.LocalDate).now()}")
+          @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+          LocalDate date) {
     String objectPath = String.format("bse/%s/", DownloaderUtils.getObjectDateFormat(date));
 
     try {
@@ -51,7 +52,6 @@ public class DownloaderApplication {
 
       ZipEntry zipEntry;
       while ((zipEntry = zipInputStream.getNextEntry()) != null) {
-
         byte[] zipEntryBytes = DownloaderUtils.readEntryIntoInputStream(zipInputStream);
         uploadObject(
             environment.getProperty("PROJECT"),
