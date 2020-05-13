@@ -65,5 +65,5 @@ jobs:
     # Deploy the Docker image to the Cloud Run
     - name: Deploy
       run: |
-        gcloud components install beta && gcloud beta run deploy $IMAGE --quiet --image $REGISTRY_HOSTNAME/$PROJECT/$IMAGE:${GITHUB_SHA} --project $PROJECT --region $REGION --platform managed
+        gcloud components install beta && gcloud beta run deploy $IMAGE --quiet --image $REGISTRY_HOSTNAME/$PROJECT/$IMAGE:${GITHUB_SHA} --project $PROJECT --region $REGION --platform managed --no-allow-unauthenticated
 
