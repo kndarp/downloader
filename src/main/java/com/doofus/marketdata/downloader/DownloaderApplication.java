@@ -18,6 +18,8 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLConnection;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -43,12 +45,22 @@ public class DownloaderApplication {
       @RequestParam(value = "date", defaultValue = "#{T(java.time.LocalDate).now()}")
           @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
           LocalDate date) {
+    LOGGER.info("Request for {}", date);
     String objectPath = String.format("bse/%s/", DownloaderUtils.getObjectDateFormat(date));
 
     try {
-      URL downloadUrl =
-          new URL(String.format(downloadLink, DownloaderUtils.getFileDateFormat(date)));
-      ZipInputStream zipInputStream = new ZipInputStream(downloadUrl.openStream());
+      URLConnection connection =
+          new URL(String.format(downloadLink, DownloaderUtils.getFileDateFormat(date)))
+              .openConnection();
+      connection.setRequestProperty(
+          "User-Agent",
+          "Mozilla/5.0 (Windows NT 6.1; WOW64) "
+              + "AppleWebKit/537.11 (KHTML, like Gecko) "
+              + "Chrome/23.0.1271.95 Safari/537.11");
+      connection.connect();
+
+      ZipInputStream zipInputStream =
+          new ZipInputStream(connection.getInputStream(), StandardCharsets.UTF_8);
 
       ZipEntry zipEntry;
       while ((zipEntry = zipInputStream.getNextEntry()) != null) {
